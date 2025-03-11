@@ -280,7 +280,7 @@ async fn main_inner() -> Result<()> {
   tokio::spawn(background);
 
   connection.connect().await?;
-  info!("muc_domain :{}",opt.muc_domain)
+  // info!("muc_domain :{}",opt.muc_domain)
   let room_jid = format!(
     "{}@{}",
     opt.room_name,
