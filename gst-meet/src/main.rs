@@ -289,7 +289,7 @@ async fn main_inner() -> Result<()> {
       .clone()
       .unwrap_or_else(|| { format!("muc.{}", xmpp_domain) }),
   );
-  info!("room_jid :{}",room_jid)
+  // info!("room_jid :{}",room_jid)
   let focus_jid = opt
     .focus_jid
     .clone()
