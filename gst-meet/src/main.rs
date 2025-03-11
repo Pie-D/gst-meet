@@ -280,7 +280,7 @@ async fn main_inner() -> Result<()> {
   tokio::spawn(background);
 
   connection.connect().await?;
-
+  info!("muc_domain :{}",opt.muc_domain)
   let room_jid = format!(
     "{}@{}",
     opt.room_name,
@@ -289,7 +289,7 @@ async fn main_inner() -> Result<()> {
       .clone()
       .unwrap_or_else(|| { format!("muc.{}", xmpp_domain) }),
   );
-
+  info!("room_jid :{}",room_jid)
   let focus_jid = opt
     .focus_jid
     .clone()

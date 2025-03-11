@@ -23,7 +23,7 @@ impl TryFrom<Element> for Conference {
 
 impl From<Conference> for Element {
   fn from(conference: Conference) -> Element {
-    let mut builder = Element::builder("muc", ns::JITSI_FOCUS)
+    let mut builder = Element::builder("conference", ns::JITSI_FOCUS)
       .attr("machine-uid", conference.machine_uid)
       .attr("room", conference.room);
     for (name, value) in conference.properties {

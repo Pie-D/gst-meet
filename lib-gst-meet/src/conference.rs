@@ -544,6 +544,7 @@ impl StanzaFilter for JitsiConference {
             }
           }
           else {
+            info!("log-diep-iq: {}", iq);
             bail!("focus IQ failed");
           };
 
