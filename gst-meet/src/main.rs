@@ -1,4 +1,4 @@
-use std::{collections::HashMap, time::Duration};
+use std::{collections::HashMap, time::Duration, fs};
 
 use anyhow::{bail, Context, Result};
 #[cfg(target_os = "macos")]
@@ -7,7 +7,7 @@ use colibri::{ColibriMessage, Constraints, VideoType};
 use glib::object::ObjectExt as _;
 use gstreamer::{
   prelude::{ElementExt as _, ElementExtManual as _, GstBinExt as _},
-  GhostPad,
+  GhostPad, ElementFactory, Pipeline, State
 };
 use http::Uri;
 use lib_gst_meet::{
@@ -205,6 +205,8 @@ async fn main_inner() -> Result<()> {
 
   init_gstreamer()?;
 
+  // Tạo thư mục screenshots nếu chưa có
+  fs::create_dir_all("screenshots").context("Failed to create screenshots directory")?;
   // Parse pipelines early so that we don't bother connecting to the conference if it's invalid.
 
   let send_pipeline = opt
@@ -416,69 +418,86 @@ async fn main_inner() -> Result<()> {
     }
   }
 
-  conference
-    .on_participant(move |conference, participant| {
-      let recv_pipeline_participant_template = recv_pipeline_participant_template.clone();
-      Box::pin(async move {
-        info!("New participant: {:?}", participant);
+  conference.on_participant(move |conference, participant| {
+    let participant_id = participant.muc_jid.resource_str().to_string();
 
-        if let Some(template) = recv_pipeline_participant_template {
-          let pipeline_description = template
-            .replace(
-              "{jid}",
-              &participant
-                .jid
-                .as_ref()
-                .map(|jid| jid.to_string())
-                .unwrap_or_default(),
-            )
-            .replace(
-              "{jid_user}",
-              participant
-                .jid
-                .as_ref()
-                .and_then(|jid| jid.node_str())
-                .unwrap_or_default(),
-            )
-            .replace("{participant_id}", &participant.muc_jid.resource_str())
-            .replace("{nick}", &participant.nick.unwrap_or_default());
+    // 🔹 Kiểm tra nếu có `recv_pipeline_participant_template`
+    if let Some(ref template) = opt.recv_pipeline_participant_template {
+        let pipeline_description = template
+            .replace("{participant_id}", &participant_id);
 
-          let bin = gstreamer::parse::bin_from_description(&pipeline_description, false)
-            .context("failed to parse recv pipeline participant template")?;
+        let bin = match gstreamer::parse::bin_from_description(&pipeline_description, false) {
+            Ok(bin) => bin,
+            Err(err) => {
+                error!("Failed to parse pipeline for participant {}: {:?}", participant_id, err);
+                return Box::pin(async { Ok(()) });
+            }
+        };
 
-          if let Some(audio_sink_element) = bin.by_name("audio") {
-            let sink_pad = audio_sink_element.static_pad("sink").context(
-              "audio sink element in recv pipeline participant template has no sink pad",
-            )?;
+        if let Some(video_sink_element) = bin.by_name("video") {
+            let sink_pad = match video_sink_element.static_pad("sink") {
+                Some(pad) => pad,
+                None => {
+                    error!("Video sink element for participant {} has no sink pad", participant_id);
+                    return Box::pin(async { Ok(()) });
+                }
+            };
+
             bin.add_pad(
-              &GhostPad::builder_with_target(&sink_pad)?
-                .name("audio")
-                .build(),
-            )?;
-          }
-
-          if let Some(video_sink_element) = bin.by_name("video") {
-            let sink_pad = video_sink_element.static_pad("sink").context(
-              "video sink element in recv pipeline participant template has no sink pad",
-            )?;
-            bin.add_pad(
-              &GhostPad::builder_with_target(&sink_pad)?
-                .name("video")
-                .build(),
-            )?;
-          }
-
-          bin.set_property(
-            "name",
-            format!("participant_{}", participant.muc_jid.resource()),
-          );
-          conference.add_bin(&bin).await?;
+                &GhostPad::builder_with_target(&sink_pad)
+                    .unwrap()
+                    .name("video")
+                    .build(),
+            )
+            .unwrap();
         }
 
-        Ok(())
-      })
-    })
-    .await;
+        // Thêm pipeline vào conference
+        let conference_clone = conference.clone();
+        tokio::spawn(async move {
+            if let Err(e) = conference_clone.add_bin(&bin).await {
+                error!("Failed to add pipeline bin for participant {}: {:?}", participant_id, e);
+            }
+        });
+
+        // 🔹 Bắt đầu chụp ảnh màn hình
+        let screenshot_pipeline_desc = format!(
+            "videoconvert ! jpegenc ! filesink location=screenshots/{}.jpg",
+            participant_id
+        );
+
+        tokio::spawn(async move {
+            info!("Capturing screenshot for participant: {}", participant_id);
+
+            let pipeline = match gstreamer::parse::launch(&screenshot_pipeline_desc) {
+                Ok(pipeline) => pipeline.downcast::<Pipeline>().unwrap(),
+                Err(e) => {
+                    error!("Failed to create screenshot pipeline for {}: {:?}", participant_id, e);
+                    return;
+                }
+            };
+
+            // Liên kết video vào pipeline screenshot
+            if let Some(video_element) = conference.video_sink_element().await.ok() {
+                if let Some(video_pad) = video_element.static_pad("sink") {
+                    let ghost_pad = GhostPad::builder_with_target(&video_pad).unwrap().name("video").build();
+                    pipeline.add_pad(&ghost_pad).unwrap();
+                }
+            }
+
+            // Chạy pipeline để chụp ảnh
+            conference.add_bin(&pipeline).await.unwrap();
+            pipeline.set_state(State::Playing).unwrap();
+            tokio::time::sleep(Duration::from_secs(2)).await;
+            pipeline.set_state(State::Null).unwrap();
+            conference.remove_bin(&pipeline).await.unwrap();
+
+            info!("Screenshot saved for participant: {}", participant_id);
+        });
+    }
+
+        Box::pin(async { Ok(()) })
+    }).await;
 
   conference
     .on_participant_left(move |_conference, participant| {
