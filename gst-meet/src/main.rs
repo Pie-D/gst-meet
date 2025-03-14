@@ -465,15 +465,19 @@ async fn main_inner() -> Result<()> {
                       return Ok(());
                   }
               };
-              let bin = screenshot_pipeline
-              .dynamic_cast_ref::<gstreamer::Bin>()
-              .expect("Failed to cast Pipeline to Bin");
               // Chạy pipeline để chụp ảnh
-              conference.add_bin(&screenshot_pipeline).await.unwrap();
-              screenshot_pipeline.set_state(State::Playing).unwrap();
-              tokio::time::sleep(Duration::from_secs(2)).await;
-              screenshot_pipeline.set_state(State::Null).unwrap();
-              conference.remove_bin(&screenshot_pipeline).await.unwrap();
+              if let Some(bin) = screenshot_pipeline.downcast_ref::<gstreamer::Bin>() {
+                info!("Adding screenshot pipeline as Bin...");
+                conference.add_bin(bin).await.unwrap();
+                bin.set_state(State::Playing).unwrap();
+            
+                tokio::time::sleep(Duration::from_secs(2)).await;
+            
+                bin.set_state(State::Null).unwrap();
+                conference.remove_bin(bin).await.unwrap();
+            } else {
+                error!("screenshot_pipeline is not a Bin! Cannot add to conference.");
+            }
 
               info!("Screenshot saved: {}", filename);
           }
