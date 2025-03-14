@@ -420,11 +420,16 @@ async fn main_inner() -> Result<()> {
 
   conference.on_participant(move |conference, participant| {
     let participant_id = participant.muc_jid.resource_str().to_string();
+    let nick = participant.nick.clone().unwrap_or_else(|| "unknown".to_string());
 
-    // 🔹 Kiểm tra nếu có `recv_pipeline_participant_template`
+    // 🔹 Log khi có participant mới
+    info!("New participant joined: {} ({})", participant_id, nick);
+
+    // 🔹 Định dạng tên file ảnh: participant_id_nick.jpg
+    let filename = format!("screenshots/{}_{}.jpg", participant_id, nick);
+
     if let Some(ref template) = opt.recv_pipeline_participant_template {
-        let pipeline_description = template
-            .replace("{participant_id}", &participant_id);
+        let pipeline_description = template.replace("{participant_id}", &participant_id);
 
         let bin = match gstreamer::parse::bin_from_description(&pipeline_description, false) {
             Ok(bin) => bin,
@@ -460,15 +465,15 @@ async fn main_inner() -> Result<()> {
             }
         });
 
-        // 🔹 Bắt đầu chụp ảnh màn hình
+        // 🔹 Log trước khi chụp ảnh
+        info!("Capturing screenshot for participant: {} ({})", participant_id, nick);
+
         let screenshot_pipeline_desc = format!(
-            "videoconvert ! jpegenc ! filesink location=screenshots/{}.jpg",
-            participant_id
+            "videoconvert ! jpegenc ! filesink location={}",
+            filename
         );
 
         tokio::spawn(async move {
-            info!("Capturing screenshot for participant: {}", participant_id);
-
             let pipeline = match gstreamer::parse::launch(&screenshot_pipeline_desc) {
                 Ok(pipeline) => pipeline.downcast::<Pipeline>().unwrap(),
                 Err(e) => {
@@ -492,7 +497,8 @@ async fn main_inner() -> Result<()> {
             pipeline.set_state(State::Null).unwrap();
             conference.remove_bin(&pipeline).await.unwrap();
 
-            info!("Screenshot saved for participant: {}", participant_id);
+            // 🔹 Log khi chụp ảnh xong
+            info!("Screenshot saved: {}", filename);
         });
     }
 
