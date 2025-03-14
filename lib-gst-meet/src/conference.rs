@@ -348,7 +348,16 @@ impl JitsiConference {
     bin.sync_state_with_parent()?;
     Ok(())
   }
-
+  #[tracing::instrument(level = "debug", err)]
+  pub async fn remove_bin(&self, bin: &gstreamer::Bin) -> Result<()> {
+      let pipeline = self.pipeline().await?;
+      
+      // Tắt bin trước khi xóa để tránh lỗi
+      bin.set_state(gstreamer::State::Null)?;
+      
+      pipeline.remove(bin)?;
+      Ok(())
+  }
   #[tracing::instrument(level = "debug", err)]
   pub async fn set_pipeline_state(&self, state: gstreamer::State) -> Result<()> {
     self.pipeline().await?.call_async(move |p| {
