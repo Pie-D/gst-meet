@@ -465,7 +465,9 @@ async fn main_inner() -> Result<()> {
                       return Ok(());
                   }
               };
-
+              let bin = screenshot_pipeline
+              .dynamic_cast_ref::<gstreamer::Bin>()
+              .expect("Failed to cast Pipeline to Bin");
               // Chạy pipeline để chụp ảnh
               conference.add_bin(&screenshot_pipeline).await.unwrap();
               screenshot_pipeline.set_state(State::Playing).unwrap();
