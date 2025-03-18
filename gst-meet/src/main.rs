@@ -287,7 +287,7 @@ async fn main_inner() -> Result<()> {
     opt
       .muc_domain
       .clone()
-      .unwrap_or_else(|| { format!("conference.{}", xmpp_domain) }),
+      .unwrap_or_else(|| { format!("muc.{}", xmpp_domain) }),
   );
 
   let focus_jid = opt

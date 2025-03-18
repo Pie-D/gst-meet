@@ -342,7 +342,6 @@ impl Connection {
         },
         DiscoveringExternalServices => {
           let iq = Iq::try_from(element)?;
-            info!("iq: {:?}", iq);
           if let IqType::Result(Some(element)) = iq.payload {
             let services = xmpp::extdisco::ServicesResult::try_from(element)?;
             debug!("external services: {:?}", services.services);
