@@ -371,14 +371,14 @@ async fn main_inner() -> Result<()> {
   if let Some(bin) = send_pipeline {
     conference.add_bin(&bin).await?;
 
-    // if let Some(audio) = bin.by_name("audio") {
-    //   info!("Found audio element in pipeline, linking...");
-    //   let audio_sink = conference.audio_sink_element().await?;
-    //   audio.link(&audio_sink)?;
-    // }
-    // else {
-    //   conference.set_muted(MediaType::Audio, true).await?;
-    // }
+    if let Some(audio) = bin.by_name("audio") {
+      info!("Found audio element in pipeline, linking...");
+      let audio_sink = conference.audio_sink_element().await?;
+      audio.link(&audio_sink)?;
+    }
+    else {
+      conference.set_muted(MediaType::Audio, true).await?;
+    }
 
     if let Some(video) = bin.by_name("video") {
       info!("Found video element in pipeline, linking...");
@@ -397,14 +397,14 @@ async fn main_inner() -> Result<()> {
   if let Some(bin) = recv_pipeline {
     conference.add_bin(&bin).await?;
 
-    // if let Some(audio_element) = bin.by_name("audio") {
-    //   info!(
-    //     "recv pipeline has an audio element, a sink pad will be requested from it for each participant"
-    //   );
-    //   conference
-    //     .set_remote_participant_audio_sink_element(Some(audio_element))
-    //     .await;
-    // }
+    if let Some(audio_element) = bin.by_name("audio") {
+      info!(
+        "recv pipeline has an audio element, a sink pad will be requested from it for each participant"
+      );
+      conference
+        .set_remote_participant_audio_sink_element(Some(audio_element))
+        .await;
+    }
 
     if let Some(video_element) = bin.by_name("video") {
       info!(
@@ -446,16 +446,16 @@ async fn main_inner() -> Result<()> {
           let bin = gstreamer::parse::bin_from_description(&pipeline_description, false)
             .context("failed to parse recv pipeline participant template")?;
 
-          // if let Some(audio_sink_element) = bin.by_name("audio") {
-          //   let sink_pad = audio_sink_element.static_pad("sink").context(
-          //     "audio sink element in recv pipeline participant template has no sink pad",
-          //   )?;
-          //   bin.add_pad(
-          //     &GhostPad::builder_with_target(&sink_pad)?
-          //       .name("audio")
-          //       .build(),
-          //   )?;
-          // }
+          if let Some(audio_sink_element) = bin.by_name("audio") {
+            let sink_pad = audio_sink_element.static_pad("sink").context(
+              "audio sink element in recv pipeline participant template has no sink pad",
+            )?;
+            bin.add_pad(
+              &GhostPad::builder_with_target(&sink_pad)?
+                .name("audio")
+                .build(),
+            )?;
+          }
 
           if let Some(video_sink_element) = bin.by_name("video") {
             let sink_pad = video_sink_element.static_pad("sink").context(
