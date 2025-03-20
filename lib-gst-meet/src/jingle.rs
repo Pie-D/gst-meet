@@ -1089,20 +1089,37 @@ impl JingleSession {
                 MediaType::Audio => "audio",
                 MediaType::Video => "video",
               };
-              if let Some(sink_pad) = participant_bin.static_pad(sink_pad_name) {
-                src_pad.link(&sink_pad).context(
-                  "failed to link decode chain to participant bin from recv participant pipeline",
-                )?;
-                info!(
-                  "linked {}/{:?} to recv participant pipeline",
-                  participant_id, source.media_type
-                );
-              }
-              else {
-                warn!(
-                  "no {} sink pad on {} participant bin in recv participant pipeline",
-                  sink_pad_name, participant_id
-                );
+              // if let Some(sink_pad) = participant_bin.static_pad(sink_pad_name) {
+              //   src_pad.link(&sink_pad).context(
+              //     "failed to link decode chain to participant bin from recv participant pipeline",
+              //   )?;
+              //   info!(
+              //     "linked {}/{:?} to recv participant pipeline",
+              //     participant_id, source.media_type
+              //   );
+              // }
+              // else {
+              //   warn!(
+              //     "no {} sink pad on {} participant bin in recv participant pipeline",
+              //     sink_pad_name, participant_id
+              //   );
+              // }
+              let sink_pad = participant_bin.static_pad(sink_pad_name)
+              .or_else(|| participant_bin.request_pad_simple(sink_pad_name));
+
+              if let Some(sink_pad) = sink_pad {
+                  src_pad.link(&sink_pad).context(
+                      "failed to link decode chain to participant bin from recv participant pipeline",
+                  )?;
+                  info!(
+                      "linked {}/{:?} to recv participant pipeline",
+                      participant_id, source.media_type
+                  );
+              } else {
+                  warn!(
+                      "no {} sink pad on {} participant bin in recv participant pipeline",
+                      sink_pad_name, participant_id
+                  );
               }
             }
 
