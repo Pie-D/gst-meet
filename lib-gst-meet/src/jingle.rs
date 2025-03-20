@@ -1085,41 +1085,51 @@ impl JingleSession {
               );
             }
             else if let Some(participant_bin) = maybe_participant_bin {
-              let sink_pad_name = match source.media_type {
-                MediaType::Audio => "audio",
-                MediaType::Video => "video",
-              };
-              // if let Some(sink_pad) = participant_bin.static_pad(sink_pad_name) {
-              //   src_pad.link(&sink_pad).context(
-              //     "failed to link decode chain to participant bin from recv participant pipeline",
-              //   )?;
-              //   info!(
-              //     "linked {}/{:?} to recv participant pipeline",
-              //     participant_id, source.media_type
-              //   );
-              // }
-              // else {
-              //   warn!(
-              //     "no {} sink pad on {} participant bin in recv participant pipeline",
-              //     sink_pad_name, participant_id
-              //   );
-              // }
-              let sink_pad = participant_bin.static_pad(sink_pad_name)
-              .or_else(|| participant_bin.request_pad_simple(sink_pad_name));
-
-              if let Some(sink_pad) = sink_pad {
-                  src_pad.link(&sink_pad).context(
-                      "failed to link decode chain to participant bin from recv participant pipeline",
-                  )?;
-                  info!(
-                      "linked {}/{:?} to recv participant pipeline",
-                      participant_id, source.media_type
-                  );
-              } else {
-                  warn!(
-                      "no {} sink pad on {} participant bin in recv participant pipeline",
-                      sink_pad_name, participant_id
-                  );
+              let audio_pad_name = "audio";
+              let video_pad_name = "video";
+          
+              // Yêu cầu hoặc lấy pad video
+              let video_pad = participant_bin.static_pad(video_pad_name)
+                  .or_else(|| participant_bin.request_pad_simple(video_pad_name));
+          
+              // Yêu cầu hoặc lấy pad audio
+              let audio_pad = participant_bin.static_pad(audio_pad_name)
+                  .or_else(|| participant_bin.request_pad_simple(audio_pad_name));
+          
+              // Kiểm tra nếu audio pad chưa có, tạo ghost pad cho nó
+              if audio_pad.is_none() {
+                  warn!("Participant {} does not have an audio pad, creating one", participant_id);
+                  let ghost_pad = GhostPad::builder()
+                      .name(format!("participant_{}_audio", participant_id))
+                      .build();
+                  participant_bin.add_pad(&ghost_pad).expect("Failed to add ghost pad for audio");
+              }
+          
+              // Kiểm tra nếu video pad chưa có, tạo ghost pad cho nó
+              if video_pad.is_none() {
+                  warn!("Participant {} does not have a video pad, creating one", participant_id);
+                  let ghost_pad = GhostPad::builder()
+                      .name(format!("participant_{}_video", participant_id))
+                      .build();
+                  participant_bin.add_pad(&ghost_pad).expect("Failed to add ghost pad for video");
+              }
+          
+              // Link video nếu có
+              if let (Some(src), Some(sink)) = (src_pad.as_ref(), video_pad.as_ref()) {
+                  if src.link(sink).is_ok() {
+                      info!("Linked {}/Video to recv participant pipeline", participant_id);
+                  } else {
+                      error!("Failed to link video for participant {}", participant_id);
+                  }
+              }
+          
+              // Link audio nếu có
+              if let (Some(src), Some(sink)) = (src_pad.as_ref(), audio_pad.as_ref()) {
+                  if src.link(sink).is_ok() {
+                      info!("Linked {}/Audio to recv participant pipeline", participant_id);
+                  } else {
+                      error!("Failed to link audio for participant {}", participant_id);
+                  }
               }
             }
 
