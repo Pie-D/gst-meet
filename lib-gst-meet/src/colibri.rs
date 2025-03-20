@@ -119,7 +119,7 @@ impl ColibriChannel {
       while let Some(colibri_msg) = stream.next().await {
         match serde_json::to_string(&colibri_msg) {
           Ok(json) => {
-            debug!("Colibri >>> {}", json);
+            // debug!("Colibri >>> {}", json);
             let msg = Message::Text(json);
             colibri_sink.send(msg).await?;
           },

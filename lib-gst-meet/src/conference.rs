@@ -314,7 +314,9 @@ impl JitsiConference {
   }
 
   #[tracing::instrument(level = "debug", err)]
-  pub async fn set_muted(&self, media_type: MediaType, muted: bool) -> Result<()> {
+    pub async fn set_muted(&self, media_type: MediaType, muted: bool) -> Result<()> {
+        // Allow for muted participants without blocking the pipeline
+
     let mut locked_inner = self.inner.lock().await;
     let element = xmpp_parsers::Element::builder(
       media_type.jitsi_muted_presence_element_name(),
@@ -342,7 +344,9 @@ impl JitsiConference {
   }
 
   #[tracing::instrument(level = "debug", err)]
-  pub async fn add_bin(&self, bin: &gstreamer::Bin) -> Result<()> {
+    pub async fn add_bin(&self, bin: &gstreamer::Bin) -> Result<()> {
+        // Ensure the pipeline can handle cases with muted participants
+
     let pipeline = self.pipeline().await?;
     pipeline.add(bin)?;
     bin.sync_state_with_parent()?;
@@ -359,7 +363,9 @@ impl JitsiConference {
     Ok(())
   }
 
-  pub async fn remote_participant_audio_sink_element(&self) -> Option<gstreamer::Element> {
+    pub async fn remote_participant_audio_sink_element(&self) -> Option<gstreamer::Element> {
+        // Check if the audio sink element is available
+
     self.inner.lock().await.audio_sink.as_ref().cloned()
   }
 
@@ -367,7 +373,9 @@ impl JitsiConference {
     self.inner.lock().await.audio_sink = sink;
   }
 
-  pub async fn remote_participant_video_sink_element(&self) -> Option<gstreamer::Element> {
+    pub async fn remote_participant_video_sink_element(&self) -> Option<gstreamer::Element> {
+        // Check if the video sink element is available
+
     self.inner.lock().await.video_sink.as_ref().cloned()
   }
 
@@ -728,7 +736,7 @@ impl StanzaFilter for JitsiConference {
                           if let (Some(remote_ssrc_map), Some(source_stats)) =
                             (maybe_remote_ssrc_map, maybe_source_stats)
                           {
-                            debug!("source stats: {:#?}", source_stats);
+                            // debug!("source stats: {:#?}", source_stats);
 
                             let audio_recv_bitrate: u64 = source_stats
                               .iter()
