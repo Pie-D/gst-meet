@@ -463,11 +463,14 @@ async fn main_inner() -> Result<()> {
             let sink_pad = audio_sink_element.static_pad("sink").context(
               "audio sink element in recv pipeline participant template has no sink pad",
             )?;
-            bin.add_pad(
-              &GhostPad::builder_with_target(&sink_pad)?
-                .name("audio")
-                .build(),
-            )?;
+
+          let audio_ghost_pad = GhostPad::builder_with_target(&sink_pad)?
+          .name("audio")
+          .build();
+
+          audio_ghost_pad.set_property("sync", false);
+
+          bin.add_pad(&audio_ghost_pad)?;
           }
 
           if let Some(video_sink_element) = bin.by_name("video") {
@@ -481,11 +484,14 @@ async fn main_inner() -> Result<()> {
               PadProbeReturn::Ok
           });
       
-            bin.add_pad(
-              &GhostPad::builder_with_target(&sink_pad)?
-                .name("video")
-                .build(),
-            )?;
+          let video_ghost_pad = GhostPad::builder_with_target(&sink_pad)?
+          .name("video")
+          .build();
+
+          video_ghost_pad.set_property("sync", false);
+    
+          bin.add_pad(&video_ghost_pad)?;
+    
           }
 
           bin.set_property(
