@@ -468,7 +468,7 @@ async fn main_inner() -> Result<()> {
           .name("audio")
           .build();
 
-          audio_ghost_pad.set_property("sync", false);
+          // audio_ghost_pad.set_property("sync", false);
 
           bin.add_pad(&audio_ghost_pad)?;
           }
@@ -477,18 +477,18 @@ async fn main_inner() -> Result<()> {
             let sink_pad = video_sink_element.static_pad("sink").context(
               "video sink element in recv pipeline participant template has no sink pad",
             )?;
-            sink_pad.add_probe(PadProbeType::BUFFER, move |_, info| {
-              if let Some(gstreamer::PadProbeData::Buffer(ref buffer)) = info.data {
-                info!("participant VIDEO buffer nhận được đầu tiên, pts = {:?}", buffer.pts());
-              }
-              PadProbeReturn::Ok
-          });
+          //   sink_pad.add_probe(PadProbeType::BUFFER, move |_, info| {
+          //     if let Some(gstreamer::PadProbeData::Buffer(ref buffer)) = info.data {
+          //       info!("participant VIDEO buffer nhận được đầu tiên, pts = {:?}", buffer.pts());
+          //     }
+          //     PadProbeReturn::Ok
+          // });
       
           let video_ghost_pad = GhostPad::builder_with_target(&sink_pad)?
           .name("video")
           .build();
 
-          video_ghost_pad.set_property("sync", false);
+          // video_ghost_pad.set_property("sync", false);
     
           bin.add_pad(&video_ghost_pad)?;
     
