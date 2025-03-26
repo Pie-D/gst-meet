@@ -351,11 +351,13 @@ impl JitsiConference {
 
   #[tracing::instrument(level = "debug", err)]
   pub async fn set_pipeline_state(&self, state: gstreamer::State) -> Result<()> {
+    info!("set_pipeline_state: {:?}", state);
     self.pipeline().await?.call_async(move |p| {
       if let Err(e) = p.set_state(state) {
-        error!("pipeline set_state: {:?}", e);
+        error!("----- pipeline set_state: {:?}", e);
       }
     });
+    info!("ok");
     Ok(())
   }
 
