@@ -421,7 +421,17 @@ async fn main_inner() -> Result<()> {
       let recv_pipeline_participant_template = recv_pipeline_participant_template.clone();
       Box::pin(async move {
         info!("New participant: {:?}", participant);
+            // Lấy tên thư mục từ participant (nick hoặc participant_id)
+            let participant_folder = format!(
+              "./participants/{}",
+              participant.nick.clone().unwrap_or_else(|| participant.muc_jid.resource_str().to_string())
+          );
 
+          let path = Path::new(&participant_folder);
+          if !path.exists() {
+              fs::create_dir_all(path).context("failed to create participant directory")?;
+              info!("Created directory: {}", participant_folder);
+          }
         if let Some(template) = recv_pipeline_participant_template {
           let pipeline_description = template
             .replace(
@@ -441,7 +451,7 @@ async fn main_inner() -> Result<()> {
                 .unwrap_or_default(),
             )
             .replace("{participant_id}", &participant.muc_jid.resource_str())
-            .replace("{nick}", &participant.nick.unwrap_or_default());
+            .replace("{nick}", &participant.nick.unwrap_or_default().replace(' ', "_"));
 
           let bin = gstreamer::parse::bin_from_description(&pipeline_description, false)
             .context("failed to parse recv pipeline participant template")?;
