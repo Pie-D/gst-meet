@@ -568,7 +568,7 @@ impl JingleSession {
     debug!("building gstreamer pipeline");
 
     let pipeline = gstreamer::Pipeline::new();
-    pipeline.use_clock(None::<&gstreamer::Clock>);
+    // pipeline.use_clock(None::<&gstreamer::Clock>);
 
     let rtpbin = gstreamer::ElementFactory::make("rtpbin")
       .name("rtpbin")
