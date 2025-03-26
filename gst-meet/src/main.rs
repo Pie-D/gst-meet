@@ -1,5 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 use std::fs;
+use gstreamer::{PadProbeReturn, PadProbeType};
 use std::path::Path;
 use anyhow::{bail, Context, Result};
 #[cfg(target_os = "macos")]
@@ -10,6 +11,7 @@ use gstreamer::{
   prelude::{ElementExt as _, ElementExtManual as _, GstBinExt as _},
   GhostPad,
 };
+use gstreamer::prelude::PadExtManual;
 use http::Uri;
 use lib_gst_meet::{
   init_tracing, Authentication, Connection, JitsiConference, JitsiConferenceConfig, MediaType,
@@ -472,6 +474,13 @@ async fn main_inner() -> Result<()> {
             let sink_pad = video_sink_element.static_pad("sink").context(
               "video sink element in recv pipeline participant template has no sink pad",
             )?;
+            sink_pad.add_probe(PadProbeType::BUFFER, move |_, info| {
+              if let Some(gstreamer::PadProbeData::Buffer(ref buffer)) = info.data {
+                info!("participant VIDEO buffer nhận được đầu tiên, pts = {:?}", buffer.pts());
+              }
+              PadProbeReturn::Ok
+          });
+      
             bin.add_pad(
               &GhostPad::builder_with_target(&sink_pad)?
                 .name("video")
