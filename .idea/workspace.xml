@@ -8,8 +8,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="df2876f7-f6f0-492a-ac12-ab7c336cc846" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gst-meet/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/gst-meet/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib-gst-meet/src/jingle.rs" beforeDir="false" afterPath="$PROJECT_DIR$/lib-gst-meet/src/jingle.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -100,7 +99,7 @@
       <updated>1742871756795</updated>
       <workItem from="1742871757796" duration="10156000" />
       <workItem from="1742887973788" duration="3969000" />
-      <workItem from="1742953871551" duration="9901000" />
+      <workItem from="1742953871551" duration="10305000" />
     </task>
     <servers />
   </component>

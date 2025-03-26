@@ -13,6 +13,7 @@ use gstreamer::{
   },
   Bin, GhostPad,
 };
+use gstreamer::prelude::PipelineExt;
 #[cfg(feature = "log-rtp")]
 use gstreamer_rtp::RTPBuffer;
 use gstreamer_rtp::{prelude::RTPHeaderExtensionExt as _, RTPHeaderExtension};
