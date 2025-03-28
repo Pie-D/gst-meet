@@ -505,13 +505,12 @@ async fn main_inner() -> Result<()> {
       })
     })
     .await;
-  let conference_ = conference.clone();
-  let main_loop_ = main_loop.clone();
+  let main_loop_clone = main_loop.clone();
 
   conference
     .on_participant_left(move |_conference, participant| {
-      let conference_inner = conference_.clone();
-      let main_loop_inner = main_loop_.clone();
+      let conference_inner = _conference.clone();
+      let main_loop_inner = main_loop_clone.clone();
 
       Box::pin(async move {
         info!("Participant left: {:?}", participant);
