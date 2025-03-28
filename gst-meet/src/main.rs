@@ -535,7 +535,7 @@ async fn main_inner() -> Result<()> {
     info!("Participants remaining: {}", num_remaining_participants);
 
     // Chỉ còn bản thân chúng ta (hoặc không còn ai khác tham gia phòng họp)
-    if num_remaining_participants <= 1 {
+    if num_remaining_participants == 1 {
       info!("All participants have left. Exiting...");
 
       match timeout(Duration::from_secs(10), conference_.leave()).await {
