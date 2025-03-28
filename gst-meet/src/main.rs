@@ -508,8 +508,26 @@ async fn main_inner() -> Result<()> {
 
   conference
     .on_participant_left(move |_conference, participant| {
+      let conference_inner = conference.clone();
+      let main_loop_inner = main_loop.clone();
+
       Box::pin(async move {
         info!("Participant left: {:?}", participant);
+        let num_remaining_participants = conference_inner.participant_count().await;
+        info!("Participants remaining: {}", num_remaining_participants);
+
+        if num_remaining_participants == 1 {
+          info!("All participants have left. Exiting...");
+
+          match timeout(Duration::from_secs(10), conference_inner.leave()).await {
+            Ok(Ok(_)) => info!("Left conference successfully."),
+            Ok(Err(e)) => warn!("Error leaving conference: {:?}", e),
+            Err(_) => warn!("Timed out while leaving conference."),
+          }
+
+          main_loop_inner.quit();
+        }
+
         Ok(())
       })
     })
@@ -528,25 +546,25 @@ async fn main_inner() -> Result<()> {
     .set_pipeline_state(gstreamer::State::Playing)
     .await?;
 
-  let conference_ = conference.clone();
-  let main_loop_ = main_loop.clone();
-  tokio::spawn(async move {
-    let num_remaining_participants = conference_.participant_count().await;
-    info!("Participants remaining: {}", num_remaining_participants);
-
-    // Chỉ còn bản thân chúng ta (hoặc không còn ai khác tham gia phòng họp)
-    if num_remaining_participants == 1 {
-      info!("All participants have left. Exiting...");
-
-      match timeout(Duration::from_secs(10), conference_.leave()).await {
-        Ok(Ok(_)) => info!("Left conference successfully."),
-        Ok(Err(e)) => warn!("Error leaving conference: {:?}", e),
-        Err(_) => warn!("Timed out while leaving conference."),
-      }
-
-      main_loop_.quit();
-    }
-  });
+  // let conference_ = conference.clone();
+  // let main_loop_ = main_loop.clone();
+  // tokio::spawn(async move {
+  //   let num_remaining_participants = conference_.participant_count().await;
+  //   info!("Participants remaining: {}", num_remaining_participants);
+  //
+  //   // Chỉ còn bản thân chúng ta (hoặc không còn ai khác tham gia phòng họp)
+  //   if num_remaining_participants == 1 {
+  //     info!("All participants have left. Exiting...");
+  //
+  //     match timeout(Duration::from_secs(10), conference_.leave()).await {
+  //       Ok(Ok(_)) => info!("Left conference successfully."),
+  //       Ok(Err(e)) => warn!("Error leaving conference: {:?}", e),
+  //       Err(_) => warn!("Timed out while leaving conference."),
+  //     }
+  //
+  //     main_loop_.quit();
+  //   }
+  // });
 
   task::spawn_blocking(move || main_loop.run()).await?;
 
