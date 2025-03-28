@@ -505,8 +505,9 @@ impl JitsiConference {
   ) {
     self.inner.lock().await.on_participant_left = Some(Arc::new(f));
   }
-  #[tracing::instrument(level = "trace", skip(f))]
-  pub async fn participant_count(&self) -> usize {
+  pub async fn participant_count(
+    &self
+  ) -> usize {
     let locked_inner = self.inner.lock().await;
     locked_inner.participants.len()
   }
