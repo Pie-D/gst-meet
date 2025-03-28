@@ -529,19 +529,8 @@ async fn main_inner() -> Result<()> {
     .await?;
 
   let conference_ = conference.clone();
-  let main_loop = main_loop.clone();
+  let main_loop_ = main_loop.clone();
   tokio::spawn(async move {
-    // tokio::time::sleep(Duration::from_secs(120)).await; // Chờ 1 phút 30 s
-
-    // info!("Exiting...");
-
-    // match timeout(Duration::from_secs(10), conference_.leave()).await {
-    //   Ok(Ok(_)) => {},
-    //   Ok(Err(e)) => warn!("Error leaving conference: {:?}", e),
-    //   Err(_) => warn!("Timed out leaving conference"),
-    // }
-
-    // main_loop_.quit();
     let num_remaining_participants = conference_.participant_count().await;
     info!("Participants remaining: {}", num_remaining_participants);
 
@@ -555,7 +544,7 @@ async fn main_inner() -> Result<()> {
         Err(_) => warn!("Timed out while leaving conference."),
       }
 
-      main_loop.quit();
+      main_loop_.quit();
     }
   });
 
