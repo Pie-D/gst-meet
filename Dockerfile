@@ -1,79 +1,60 @@
-FROM docker.io/library/alpine:3.20.0 AS builder
+FROM rust:1.85.1 as builder
 
-# Install dependencies (musl-dev pkgconfig là bắt buộc)
-RUN apk --no-cache --update upgrade --ignore alpine-baselayout \
- && apk --no-cache add \
-    build-base \
-    git \
-    cmake \
-    clang16-dev \
-    clang16-libs \
-    curl \
-    pkgconfig \
-    musl-dev \
-    openssl-dev \
-    gstreamer-dev \
-    gst-plugins-base-dev \
-    gst-plugins-bad-dev \
-    gst-plugins-good-dev \
+# Cài đặt dependencies build
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libgstreamer1.0-dev \
+    libgstreamer-plugins-base1.0-dev \
+    libgstreamer-plugins-bad1.0-dev \
     libnice-dev \
-    rust-bindgen
-
-# Install Rust toolchain
-ENV RUSTUP_HOME=/usr/local/rustup \
-    CARGO_HOME=/usr/local/cargo \
-    PATH=/usr/local/cargo/bin:$PATH
-
-RUN curl -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.85.0 \
- && rustup target add x86_64-unknown-linux-musl
-
-# Explicitly set Rust flags for musl build
-ENV RUSTFLAGS="-C target-feature=-crt-static" \
-    CC=musl-gcc
-
-# Verify Rust version clearly
-RUN rustc --version && cargo --version
-
-# Clone and build your project
-WORKDIR /build
-COPY . .
-
-RUN cargo build --release --target x86_64-unknown-linux-musl \
- && cp target/x86_64-unknown-linux-musl/release/gst-meet /usr/local/bin/
-
-# Build gst-plugin-webrtchttp
-WORKDIR /build/plugins
-
-RUN cargo install cargo-c \
- && git clone --recursive https://gitlab.freedesktop.org/gstreamer/gst-plugins-rs.git \
- && cd gst-plugins-rs \
- && cargo cbuild -p gst-plugin-webrtchttp --release --target x86_64-unknown-linux-musl \
- && mkdir -p /gst-plugins/lib/gstreamer-1.0 \
- && cp target/x86_64-unknown-linux-musl/release/libgstwebrtchttp.so /gst-plugins/lib/gstreamer-1.0/
-
-# runtime image
-FROM docker.io/library/alpine:3.20.0
-
-RUN apk --update --no-cache upgrade --ignore alpine-baselayout \
- && apk --no-cache add \
-    openssl \
+    libssl-dev \
+    cargo \
+    cmake \
+    clang \
+    llvm \
+    rustc \
+    pkg-config \
     ca-certificates \
-    gstreamer \
-    gst-plugins-base \
-    gst-plugins-good \
-    gst-plugins-bad \
-    gst-plugins-ugly \
-    gst-libav \
-    libnice \
-    libnice-gstreamer
+    git && \
+    rm -rf /var/lib/apt/lists/*
 
-# copy binary
-COPY --from=builder /usr/local/bin/gst-meet /usr/local/bin/
+# Clone và build gst-meet binary
+COPY . .
+RUN cargo build --release -p gst-meet
 
-# copy plugin so file
-COPY --from=builder /gst-plugins/lib/gstreamer-1.0/libgstwebrtchttp.so /usr/lib/gstreamer-1.0/
+# Clone và build gst-plugin-webrtchttp (plugin WHIP/WHEP chuẩn)
+WORKDIR /build
+RUN cargo install cargo-c && \
+    git clone --recursive https://gitlab.freedesktop.org/gstreamer/gst-plugins-rs.git && \
+    cd gst-plugins-rs && \
+    cargo cbuild -p gst-plugin-webrtchttp --release && \
+    mkdir -p /gst-plugins/lib/gstreamer-1.0 && \
+    cp target/x86_64-unknown-linux-gnu/release/libgstwebrtchttp.so /gst-plugins/lib/gstreamer-1.0/
 
-# test để đảm bảo plugin chạy được
+# Stage 2: Runtime image
+FROM debian:bookworm-slim
+
+# cài đặt runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libssl3 \
+    gstreamer1.0-tools \
+    libgstreamer1.0-0 \
+    gstreamer1.0-plugins-base \
+    gstreamer1.0-plugins-good \
+    gstreamer1.0-plugins-bad \
+    gstreamer1.0-plugins-ugly \
+    gstreamer1.0-libav \
+    libnice10 \
+    gstreamer1.0-nice \
+    openjdk-17-jre \
+    ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy binaries đã build
+COPY --from=builder /usr/local/bin/gst-meet /usr/local/bin/gst-meet
+COPY --from=builder /gst-plugins/lib/gstreamer-1.0/libgstwebrtchttp.so /usr/lib/x86_64-linux-gnu/gstreamer-1.0/
+
+# Kiểm tra plugins từ bước build trước
 RUN gst-inspect-1.0 whipsink && gst-inspect-1.0 whepsrc
 
 ENTRYPOINT ["/usr/local/bin/gst-meet"]
