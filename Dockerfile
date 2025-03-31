@@ -30,7 +30,7 @@ RUN rustc --version && cargo --version
 # Clone và build gst-meet
 WORKDIR /build
 COPY . .
-RUN cargo build --release -p gst-meet \
+RUN cargo build --release \
  && cp target/release/gst-meet /usr/local/bin/
 
 # build gst-plugin-webrtchttp
