@@ -1,4 +1,4 @@
-FROM rust:1.85.1 as builder
+FROM rust:1.85.1 AS builder
 
 # Cài đặt dependencies build
 RUN apt-get update && apt-get install -y \
@@ -29,7 +29,7 @@ WORKDIR /build
 RUN cargo install cargo-c && \
     git clone --recursive https://gitlab.freedesktop.org/gstreamer/gst-plugins-rs.git && \
     cd gst-plugins-rs && \
-    cargo cbuild -p gst-plugin-webrtchttp --release && \
+    cargo cbuild -p gst-plugin-webrtc --release && \
     mkdir -p /gst-plugins/lib/gstreamer-1.0 && \
     cp target/x86_64-unknown-linux-gnu/release/libgstwebrtchttp.so /gst-plugins/lib/gstreamer-1.0/
 
