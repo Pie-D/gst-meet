@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     libnice-dev \
     libssl-dev \
     cargo \
+    nasm \
     cmake \
     clang \
     llvm \
@@ -20,7 +21,7 @@ RUN apt-get update && apt-get install -y \
 
 # Clone và build gst-meet binary
 COPY . .
-RUN cargo build --release -p gst-meet && \
+RUN cargo build --release && \
     cp ./target/release/gst-meet /usr/local/bin
 
 # Clone và build gst-plugin-webrtchttp (plugin WHIP/WHEP chuẩn)
