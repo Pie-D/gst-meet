@@ -531,7 +531,8 @@ async fn main_inner() -> Result<()> {
   let conference_ = conference.clone();
   let main_loop_ = main_loop.clone();
   tokio::spawn(async move {
-    tokio::time::sleep(Duration::from_secs(120)).await; // Chờ 1 phút 30 s
+    // tokio::time::sleep(Duration::from_secs(120)).await; // Chờ 1 phút 30 s
+    ctrl_c().await.unwrap();
 
     info!("Exiting...");
 
