@@ -31,7 +31,7 @@ RUN cargo install cargo-c && \
     cd gst-plugins-rs && \
     cargo cbuild -p gst-plugin-webrtc --release && \
     mkdir -p /gst-plugins/lib/gstreamer-1.0 && \
-    cp target/x86_64-unknown-linux-gnu/release/libgstwebrtchttp.so /gst-plugins/lib/gstreamer-1.0/
+    cp target/x86_64-unknown-linux-gnu/release/libgstwebrtc.so /gst-plugins/lib/gstreamer-1.0/
 
 # Stage 2: Runtime image
 FROM debian:bookworm-slim
@@ -54,9 +54,9 @@ RUN apt-get update && apt-get install -y \
 
 # Copy binaries đã build
 COPY --from=builder /usr/local/bin/gst-meet /usr/local/bin/gst-meet
-COPY --from=builder /gst-plugins/lib/gstreamer-1.0/libgstwebrtchttp.so /usr/lib/x86_64-linux-gnu/gstreamer-1.0/
+COPY --from=builder /gst-plugins/lib/gstreamer-1.0/libgstwebrtc.so /usr/lib/x86_64-linux-gnu/gstreamer-1.0/
 
 # Kiểm tra plugins từ bước build trước
-RUN gst-inspect-1.0 whipsink && gst-inspect-1.0 whepsrc
+# RUN gst-inspect-1.0 whipsink && gst-inspect-1.0 whepsrc
 
 ENTRYPOINT ["/usr/local/bin/gst-meet"]
