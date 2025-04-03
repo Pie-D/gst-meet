@@ -422,11 +422,12 @@ async fn main_inner() -> Result<()> {
   conference
     .on_participant(move |conference, participant| {
       let recv_pipeline_participant_template = recv_pipeline_participant_template.clone();
+      let room_name = opt.room_name.clone();
       Box::pin(async move {
         info!("New participant: {:?}", participant);
             // Lấy tên thư mục từ participant (nick hoặc participant_id)
             let participant_folder = format!(
-              "/participants/{}/{}", opt.room_name, participant.nick.clone().unwrap_or_else(|| participant.muc_jid.resource_str().to_string())
+              "/participants/{}/{}", room_name, participant.nick.clone().unwrap_or_else(|| participant.muc_jid.resource_str().to_string())
           );
 
           let path = Path::new(&participant_folder);
