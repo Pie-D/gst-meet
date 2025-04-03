@@ -426,8 +426,7 @@ async fn main_inner() -> Result<()> {
         info!("New participant: {:?}", participant);
             // Lấy tên thư mục từ participant (nick hoặc participant_id)
             let participant_folder = format!(
-              "/participants/{}",
-              participant.nick.clone().unwrap_or_else(|| participant.muc_jid.resource_str().to_string())
+              "/participants/{}/{}", opt.room_name, participant.nick.clone().unwrap_or_else(|| participant.muc_jid.resource_str().to_string())
           );
 
           let path = Path::new(&participant_folder);
