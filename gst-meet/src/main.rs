@@ -518,7 +518,7 @@ async fn main_inner() -> Result<()> {
   conference
     .on_colibri_message(move |_conference, message| {
       Box::pin(async move {
-        info!("Colibri message: {:?}", message);
+        // info!("Colibri message: {:?}", message);
         Ok(())
       })
     })
