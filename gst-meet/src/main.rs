@@ -197,7 +197,6 @@ fn init_gstreamer() -> Result<()> {
 }
 
 async fn main_inner() -> Result<()> {
-  use tokio::signal::unix::{signal, SignalKind};
   let opt = Opt::from_args();
 
   init_tracing(match opt.verbose {
@@ -209,8 +208,6 @@ async fn main_inner() -> Result<()> {
 
   init_gstreamer()?;
 
-  let mut sigterm = signal(SignalKind::terminate()).expect("Unable to catch SIGTERM");
-  let mut sigint = signal(SignalKind::interrupt()).expect("Unable to catch SIGINT");
   // Parse pipelines early so that we don't bother connecting to the conference if it's invalid.
 
   let send_pipeline = opt
@@ -531,23 +528,24 @@ async fn main_inner() -> Result<()> {
     .set_pipeline_state(gstreamer::State::Playing)
     .await?;
 
-  let main_loop_clone = main_loop.clone();
-  let conference_clone = conference.clone();
+  let conference_ = conference.clone();
+  let main_loop_ = main_loop.clone();
   tokio::spawn(async move {
-    tokio::select! {
-      _ = sigterm.recv() => info!("SIGTERM received"),
-      _ = sigint.recv() => info!("SIGINT received"),
-    }
+    // tokio::time::sleep(Duration::from_secs(120)).await; // Chờ 1 phút 30 s
+    ctrl_c().await.unwrap();
 
-    info!("Shutting down pipeline and leaving conference...");
-    match timeout(Duration::from_secs(10), conference_clone.leave()).await {
+    info!("Exiting...");
+
+    match timeout(Duration::from_secs(10), conference_.leave()).await {
       Ok(Ok(_)) => {},
       Ok(Err(e)) => warn!("Error leaving conference: {:?}", e),
       Err(_) => warn!("Timed out leaving conference"),
     }
-    main_loop_clone.quit();
+
+    main_loop_.quit();
   });
 
   task::spawn_blocking(move || main_loop.run()).await?;
+
   Ok(())
 }
