@@ -528,11 +528,18 @@ async fn main_inner() -> Result<()> {
     .set_pipeline_state(gstreamer::State::Playing)
     .await?;
 
+  use tokio::signal::unix::{signal, SignalKind};
+
   let conference_ = conference.clone();
   let main_loop_ = main_loop.clone();
   tokio::spawn(async move {
+    let mut sigint = signal(SignalKind::interrupt()).unwrap(); // Ctrl+C
+    let mut sigterm = signal(SignalKind::terminate()).unwrap();
     // tokio::time::sleep(Duration::from_secs(120)).await; // Chờ 1 phút 30 s
-    ctrl_c().await.unwrap();
+    tokio::select! {
+        _ = sigint.recv() => info!("Received SIGINT"),
+        _ = sigterm.recv() => info!("Received SIGTERM"),
+    }
 
     info!("Exiting...");
 
